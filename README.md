@@ -1,1 +1,1 @@
-# zoho-mail
+# Zoho Mail
