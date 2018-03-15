@@ -19,10 +19,10 @@ function zoho_mail_ConfigOptions()
 {
                  
     $config = array (
-                      'Client Id'  => array('Type'=> 'text', 'size' => '50', 'Description' => 'Created in the developer console'),
-                      'Client Secret' => array('Type' => 'text', 'size' => '50', 'Description' => 'Created in the developer console'),
-                      'Region' => array('Type' => 'dropdown', 'Options' => 'com,eu', 'Description' => 'Region of domain'),
-                      'Redirect Url' => array('Type' => 'text', 'Default' => 'https://<mydomain>/whmcs/admin/clientsservices.php?', 'Description' => '<mydomain> refers to your domain in the url. <a href=#> Refer </a> to configure redirect url')
+                     'Client ID'  => array('Type'=> 'text', 'size' => '50', 'Description' => '<br>Generated from the Zoho <a href =https://accounts.zoho.com/developerconsole target=blank><b>Developer Console</b></a>'),
+                      'Client Secret' => array('Type' => 'text', 'size' => '50', 'Description' => '<br>Generated from the Zoho <a href =https://accounts.zoho.com/developerconsole target=blank><b>Developer Console</b></a>'),
+                      'Domain' => array('Type' => 'dropdown', 'Options' => 'com,eu', 'Description' => '<br>Domain Region'),
+                      'Redirect URL' => array('Type' => 'text', 'Default' => 'https://<mydomain>/whmcs/admin/clientsservices.php?', 'Description' => '<br>Redirect URL used to generate Client ID and Client Secret.<a href=https://zoho.com/mail/help/partnerportal/whmcs-integration.html target=blank><b> Refer here for instructions</b></a>')
                   );
                   
            return $config;
@@ -121,11 +121,19 @@ function zoho_mail_CreateAccount(array $params)
                                                                  $pdo->rollBack();
                                                   }
 
-                              return array ('success' => $respOrgJson->data->superAdmin);
-                        } 
+                              return array ('success' => '<h1>Mailbox has been created.</h1>');
+                        } else if ($getInfo == '400') {
+                          $updatedUserCount = Capsule::table('tblproducts')
+                            ->where('servertype','zoho_mail')
+                            ->update(
+                                  [
+                                   'configoption5' => '',
+                                   ]
+                               );
+                        }
                         else 
                         {
-                        return 'Failed    -->Description: '.$respOrgJson->status->description.' --->More Information:'.$respOrgJson->data->moreInfo;
+                        return 'Failed    -->Description: '.$respOrgJson->status->description.' --->More Information:'.$respOrgJson->data->moreInfo.'--------------'.$getInfo;
                     }
 
         }
@@ -238,15 +246,21 @@ function zoho_mail_AdminServicesTabFields(array $params)
         } else {
           $authenticateStatus = '<a href="'.$url.'" type="submit"> Click here </a> (Call only once for authenticating)';
         }
+        $verificationStatus;
+        if (strcmp("true",$cli->isverified) == 0) {
+                 $verificationStatus = '<b style=color:green>Verified</b>';
+        } else {
+                 $verificationStatus = '<b style=color:red>Not Verified</b>';
+        }
         return array(
             'Authenticate' =>
              $authenticateStatus,
-             'Domain of Client Order' => $cli->domain,
-             'URL of Org' => '<a href="'.$cli->url.'">Click here</a> to get org details',
-             'Super Admin' => $cli->superAdmin,
+             'Client Domain' => $cli->domain,
+             'Client Control Panel' => '<a href="'.$cli->url.'" target=_blank>Click here</a>',
+             'Super Administrator' => $cli->superAdmin,
              'ZOID' => $cli->zoid,
-             'IS DOMAIN VERIFIED' => $cli->isverified,
-             'Link to Manage customers' => '<a href="https://mailadmin.zoho.com/cpanel/index.do#managecustomers" target="blank">Click here</a>(After creation to manage your customers)'
+             'Domain verification status' => $verificationStatus,
+             'URL to Manage Customers' => '<a href="https://mailadmin.zoho.com/cpanel/index.do#managecustomers" target="blank">Click here</a>'
 
 
         );
