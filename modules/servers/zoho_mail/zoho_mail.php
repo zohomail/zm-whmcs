@@ -4,7 +4,26 @@ if (!defined("WHMCS")) {
     die("This file cannot be accessed directly");
 }
 function zoho_mail_MetaData()
-{    
+{    try {
+               Capsule::schema()->create(
+                                        'zoho_mail',
+                                   function ($table) {
+                                         $table->string('domain');
+                                         $table->string('zoid');
+                                         $table->string('superAdmin');
+                                         $table->string('isverified');
+                                         $table->string('url');
+                                       }
+                                );
+        } catch (Exception $e) {
+        logModuleCall(
+            'zoho_mail',
+            __FUNCTION__,
+            $params,
+            $e->getMessage(),
+            $e->getTraceAsString()
+        );
+    }
     return array(
         'DisplayName' => 'Zoho Mail',
         'APIVersion' => '1.1', 
@@ -121,7 +140,7 @@ function zoho_mail_CreateAccount(array $params)
                                                                  $pdo->rollBack();
                                                   }
 
-                              return array ('success' => '<h1>Mailbox has been created.</h1>');
+                              return array ('success' => 'Mailbox has been created.');
                         } else if ($getInfo == '400') {
                           $updatedUserCount = Capsule::table('tblproducts')
                             ->where('servertype','zoho_mail')
@@ -206,7 +225,7 @@ function zoho_mail_AdminServicesTabFields(array $params)
 
                    echo "Fixed {$updatedUserCount} misspelled last names.";
                    
-                        Capsule::schema()->create(
+                       /* Capsule::schema()->create(
                                         'zoho_mail',
                                    function ($table) {
                                          $table->string('domain');
@@ -215,7 +234,7 @@ function zoho_mail_AdminServicesTabFields(array $params)
                                          $table->string('isverified');
                                          $table->string('url');
                                        }
-                                );
+                                );*/
                        } 
                    
                    catch (Exception $e) {
@@ -252,6 +271,7 @@ function zoho_mail_AdminServicesTabFields(array $params)
         } else {
                  $verificationStatus = '<b style=color:red>Not Verified</b>';
         }
+
         return array(
             'Authenticate' =>
              $authenticateStatus,
