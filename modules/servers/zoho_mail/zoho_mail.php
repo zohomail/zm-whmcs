@@ -9,20 +9,13 @@ function zoho_mail_MetaData()
                                         'zoho_mail',
                                    function ($table) {
                                          $table->string('domain');
-                                         $table->string('zoid');
+                                         $table->string('zoid')->unique();
                                          $table->string('superAdmin');
                                          $table->string('isverified');
                                          $table->string('url');
                                        }
                                 );
         } catch (Exception $e) {
-        logModuleCall(
-            'zoho_mail',
-            __FUNCTION__,
-            $params,
-            $e->getMessage(),
-            $e->getTraceAsString()
-        );
     }
     return array(
         'DisplayName' => 'Zoho Mail',
@@ -34,25 +27,69 @@ function zoho_mail_MetaData()
         'AdminSingleSignOnLabel' => 'Login to Panel as Admin',
     );
 }
+
 function zoho_mail_ConfigOptions()
-{
-                 
-    $config = array (
-                     'Client ID'  => array('Type'=> 'text', 'size' => '50', 'Description' => '<br>Generated from the Zoho <a href =https://accounts.zoho.com/developerconsole target=blank><b>Developer Console</b></a>'),
-                      'Client Secret' => array('Type' => 'text', 'size' => '50', 'Description' => '<br>Generated from the Zoho <a href =https://accounts.zoho.com/developerconsole target=blank><b>Developer Console</b></a>'),
-                      'Domain' => array('Type' => 'dropdown', 'Options' => 'com,eu', 'Description' => '<br>Domain Region'),
-                      'Redirect URL' => array('Type' => 'text', 'Default' => 'https://<mydomain>/whmcs/admin/clientsservices.php?', 'Description' => '<br>Redirect URL used to generate Client ID and Client Secret.<a href=https://zoho.com/mail/help/partnerportal/whmcs-integration.html target=blank><b> Refer here for instructions</b></a>')
+{  
+         $config = array (
+            'Provide Zoho API credentials'=>array(
+                      'Description'=>
+                           '<script type="text/javascript">
+                           var tabval = window.location.hash;
+                           document.getElementById("zm_tab_value").value = tabval.toString();
+                           </script>
+                           <form action=../modules/servers/zoho_mail/zm_oauthgrant.php method=post>
+                           <label>Domain</label><br>
+                           <select name="zm_dn" required>
+                           <option value=".com">.com</option>
+                           <option value=".eu">.eu</option>
+                           </select><br><br>
+                           <label>Client ID</label><br>
+                           <input type="text" size="60" name="zm_ci" required/><br>
+                           Generated from <a href="https://accounts.zoho.com/developerconsole" target=_blank>Zoho Developer Console</a><br><br>
+                           <label>Client Secret</label><br>
+                           <input type="text" size="60" name="zm_cs" required/><br>
+                           Generated from <a href="https://accounts.zoho.com/developerconsole" target=_blank>Zoho Developer Console</a><br><br>
+                           <label>Redirect URL</label><br>
+                           <input type="text" size="60" name="zm_ru" value=http://'.$_SERVER['SERVER_NAME'].'/whmcs/modules/servers/zoho_mail/zm_oauthgrant.php required readonly/><br>
+                           Redirect URL used to generate Client ID and Client Secret. <a href="https://www.zoho.com/mail/help/partnerportal/whmcs-integration.html" target=_blank>Refer here</a> for instructions.<br><br>
+                           <input type="hidden" id="zm_tab_value" name="zm_tab_value" value=""/>
+                           <input type="hidden" name="zm_pi" value='.$_REQUEST['id'].'>
+                           <button name="zm_submit" size="15">Authenticate</button>
+                           </form>'
+                      )
                   );
-                  
-           return $config;
+          try {
+            if (Capsule::schema()->hasTable('zoho_mail_auth_table')) 
+            {
+              $count = 0;
+              $list = 0;
+              foreach (Capsule::table('zoho_mail_auth_table')->get() as $client) {
+                  $list = $list + 1;
+                  if (strpos($client->token, 'tab') !== false){
+                    $count = 1;
+                  } 
+                }
+              if ($count == 0 && $list > 0) { 
+              $config = array (
+              'Status' => array('Description'=>' <label style="color:green;"> Authenticated Successfully </label>')
+              );
+            }
+            
+          } 
+         } catch(Exception $e) {
+
+          }
+        return $config;
 }
+
 function zoho_mail_CreateAccount(array $params)
 {
     $urlChildPanel;
     try {
         $curl = curl_init();
         $arrClient = $params['clientsdetails'];
-        $urlAT = 'https://accounts.zoho.'.$params['configoption3'].'/oauth/v2/token?refresh_token='.$params['configoption5'].'&grant_type=refresh_token&client_id='.$params['configoption1'].'&client_secret='.$params['configoption2'].'&redirect_uri='.$params['configoption4'].'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ';
+        $cli = Capsule::table('zoho_mail_auth_table')->first();
+        $urlAT = 'https://accounts.zoho'.$cli->region.'/oauth/v2/token?refresh_token='.$cli->token.'&grant_type=refresh_token&client_id='.$cli->clientId.'&client_secret='.$cli->clientSecret.'&redirect_uri='.$cli->redirectUrl.'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ';
         curl_setopt_array($curl, array(
                   CURLOPT_URL => $urlAT,
                   CURLOPT_RETURNTRANSFER => true,
@@ -75,7 +112,7 @@ function zoho_mail_CreateAccount(array $params)
                );
                $bodyJson = json_encode($bodyArr);
                $curlOrg = curl_init();
-               $urlOrg = 'https://mail.zoho.'.$params['configoption3'].'/api/organization';
+               $urlOrg = 'https://mail.zoho'.$cli->region.'/api/organization';
                curl_setopt_array($curlOrg, array(
                           CURLOPT_URL => $urlOrg,
                           CURLOPT_RETURNTRANSFER => true,
@@ -92,7 +129,7 @@ function zoho_mail_CreateAccount(array $params)
                         $respOrgJson = json_decode($responseOrg);
                         $getInfo = curl_getinfo($curlOrg,CURLINFO_HTTP_CODE);
                         curl_close($curlOrg);
-                        $urlPanel = 'https://mail.zoho.'.$params['configoption3'].'/api/organization/'.$respOrgJson->data->zoid.'?fields=encryptedZoid';
+                        $urlPanel = 'https://mail.zoho'.$cli->region.'/api/organization/'.$respOrgJson->data->zoid.'?fields=encryptedZoid';
                         $curlPanel = curl_init();
                             curl_setopt_array($curlPanel, array(
                             CURLOPT_URL => $urlPanel,
@@ -112,7 +149,7 @@ function zoho_mail_CreateAccount(array $params)
                         curl_close($curlPanel);
                         if ($getPanelInfo == '200') {
                           $encryptedZoid = $respJsonPanel->data->encryptedZoid;
-                          $urlChildPanel = 'https://mail.zoho.'.$params['configoption3'].'/cpanel/index.do?zoid='.$encryptedZoid.'&dname='.$params['domain'];
+                          $urlChildPanel = 'https://mail.zoho'.$cli->region.'/cpanel/index.do?zoid='.$encryptedZoid.'&dname='.$params['domain'];
                         }
                         if ( $getInfo == '200') 
                         {
@@ -197,74 +234,24 @@ function zoho_mail_AdminServicesTabFields(array $params)
 
 
     try{
-        if(isset($_GET['code'])) {
-            $url = 'https://accounts.zoho.'.$params['configoption3'].'/oauth/v2/token?code='.$_GET['code'].'&client_id='.$params['configoption1'].'&client_secret='.$params['configoption2'].'&redirect_uri='.$params['configoption4'].'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ&state=17121995&grant_type=authorization_code';
-            $curl = curl_init();
-            curl_setopt_array($curl, array(
-                      CURLOPT_URL => $url,
-                      CURLOPT_RETURNTRANSFER => true,
-                      CURLOPT_ENCODING => "",
-                      CURLOPT_MAXREDIRS => 10,
-                      CURLOPT_TIMEOUT => 30,
-                      CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                      CURLOPT_CUSTOMREQUEST => "POST",
-                   ));
-
-            $response = curl_exec($curl);
-            $jsonDecode = json_decode($response);
-            $err = curl_error($curl);
-            curl_close($curl);
-            try {
-                  $updatedUserCount = Capsule::table('tblproducts')
-                            ->where('servertype','zoho_mail')
-                            ->update(
-                                  [
-                                   'configoption5' => $jsonDecode->refresh_token,
-                                   ]
-                               );
-
-                   echo "Fixed {$updatedUserCount} misspelled last names.";
-                   
-                       /* Capsule::schema()->create(
-                                        'zoho_mail',
-                                   function ($table) {
-                                         $table->string('domain');
-                                         $table->string('zoid');
-                                         $table->string('superAdmin');
-                                         $table->string('isverified');
-                                         $table->string('url');
-                                       }
-                                );*/
-                       } 
-                   
-                   catch (Exception $e) {
-                             logModuleCall(
-                                 'provisioningmodule',
-                                 __FUNCTION__,
-                                $params,
-                                $e->getMessage(),
-                                $e->getTraceAsString()
-                              );
-                               
-                            }
-            $params['configoption3'] = $jsonDecode->refresh_token;
-            ?>   <head> <meta http-equiv="refresh" content="0; url= <?php echo $params['configoption4']; ?>"/> </head>  <?php
-                return array(
-                    
-
-                );
-
-            }
-
-        $url = 'https://accounts.zoho.'.$params["configoption3"].'/oauth/v2/auth?response_type=code&client_id='.$params["configoption1"].'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ&redirect_uri='.$params["configoption4"].'&state=17121995&prompt=consent&access_type=offline';
         $cli = Capsule::table('zoho_mail')->where('domain',$params['domain'])->first();
         $response = array();
-        $authenticateStatus;
-        if ( !$params['configoption5'] == '') {
-           $authenticateStatus = '<h2 style="color:green;">Authenticated</h2>';
-        } else {
-          $authenticateStatus = '<a href="'.$url.'" type="submit"> Click here </a> (Call only once for authenticating)';
-        }
+        $$authenticateStatus = '<h2 style="color:red;">UnAuthenticated</h2>';;
+        if (Capsule::schema()->hasTable('zoho_mail_auth_table')) 
+            {
+              $count = 0;
+              $list = 0;
+              foreach (Capsule::table('zoho_mail_auth_table')->get() as $client) {
+                  $list = $list + 1;
+                  if ( $client->token =='test'){
+                    $count = 1;
+                  } 
+                }
+              if ($count == 0 && $list > 0) { 
+                $authenticateStatus = '<h2 style="color:green;">Authenticated</h2>';
+              }
+            }
+        
         $verificationStatus;
         if (strcmp("true",$cli->isverified) == 0) {
                  $verificationStatus = '<b style=color:green>Verified</b>';
@@ -273,8 +260,6 @@ function zoho_mail_AdminServicesTabFields(array $params)
         }
 
         return array(
-            'Authenticate' =>
-             $authenticateStatus,
              'Client Domain' => $cli->domain,
              'Client Control Panel' => '<a href="'.$cli->url.'" target=_blank>Click here</a>',
              'Super Administrator' => $cli->superAdmin,
