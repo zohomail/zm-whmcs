@@ -64,12 +64,12 @@ function zoho_mail_ConfigOptions()
               $count = 0;
               $list = 0;
               foreach (Capsule::table('zoho_mail_auth_table')->get() as $client) {
-                  $list = $list + 1;
-                  if (strpos($client->token, 'tab') !== false){
+                  if (strpos($client->token, 'tab') == false && strlen($client->token) > 1 ){
+                    $list = $list + 1;
                     $count = 1;
                   } 
                 }
-              if ($count == 0 && $list > 0) { 
+              if ($count > 0 && $list > 0) { 
               $config = array (
               'Status' => array('Description'=>' <label style="color:green;"> Authenticated Successfully </label>')
               );
@@ -85,6 +85,7 @@ function zoho_mail_ConfigOptions()
 function zoho_mail_CreateAccount(array $params)
 {
     $urlChildPanel;
+    $bodyJson;
     try {
         $curl = curl_init();
         $arrClient = $params['clientsdetails'];
@@ -189,7 +190,7 @@ function zoho_mail_CreateAccount(array $params)
                         }
                         else 
                         {
-                        return 'Failed    -->Description: '.$respOrgJson->status->description.' --->More Information:'.$respOrgJson->data->moreInfo.'--------------'.$getInfo;
+                        return 'Failed    -->Description: '.$respOrgJson->status->description.' --->More Information:'.$respOrgJson->data->moreInfo.'--------------'.$getInfo.'--------'.$bodyJson;
                     }
 
         }
@@ -234,6 +235,7 @@ function zoho_mail_AdminServicesTabFields(array $params)
 
 
     try{
+
         $cli = Capsule::table('zoho_mail')->where('domain',$params['domain'])->first();
         $response = array();
         $$authenticateStatus = '<h2 style="color:red;">UnAuthenticated</h2>';;
