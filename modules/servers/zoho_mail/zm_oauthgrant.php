@@ -54,7 +54,10 @@ if (strlen($code) > 0)
 	try {
 		if (Capsule::schema()->hasTable('zoho_mail_auth_table'))
 		{
-			//do nothing
+      $client = Capsule::table('zoho_mail_auth_table')->first();
+      if (strlen($client->clientId) > 3 ) {
+        Capsule::table('zoho_mail_auth_table')->delete();
+      }//do nothing
 		} else 
 		{
            Capsule::schema()->create(
@@ -68,7 +71,7 @@ if (strlen($code) > 0)
                                        }
                                );
         }
-	$pdo = Capsule::connection()->getPdo();
+	  $pdo = Capsule::connection()->getPdo();
     $pdo->beginTransaction();
     $statement = $pdo->prepare('insert into zoho_mail_auth_table (region, clientId, clientSecret, redirectUrl, token) values (:region, :clientId, :clientSecret, :redirectUrl, :token)');
     $statement->execute(
