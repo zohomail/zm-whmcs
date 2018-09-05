@@ -30,6 +30,8 @@ function zoho_mail_MetaData()
 
 function zoho_mail_ConfigOptions()
 {  
+         $patharray = array();
+         $patharray = explode('/',$_SERVER['REQUEST_URI']);
          $config = array (
             'Provide Zoho API credentials'=>array(
                       'Description'=>
@@ -50,7 +52,7 @@ function zoho_mail_ConfigOptions()
                            <input type="text" size="60" name="zm_cs" required/><br>
                            Generated from <a href="https://accounts.zoho.com/developerconsole" target=_blank>Zoho Developer Console</a><br><br>
                            <label>Redirect URL</label><br>
-                           <input type="text" size="60" name="zm_ru" value=http://'.$_SERVER['SERVER_NAME'].'/whmcs/modules/servers/zoho_mail/zm_oauthgrant.php required readonly/><br>
+                           <input type="text" size="60" name="zm_ru" value='.$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].'/'.$patharray[1].'/modules/servers/zoho_mail/zm_oauthgrant.php required readonly/><br>
                            Redirect URL used to generate Client ID and Client Secret. <a href="https://www.zoho.com/mail/help/partnerportal/whmcs-integration.html" target=_blank>Refer here</a> for instructions.<br><br>
                            <input type="hidden" id="zm_tab_value" name="zm_tab_value" value=""/>
                            <input type="hidden" name="zm_pi" value='.$_REQUEST['id'].'>
