@@ -2,7 +2,9 @@
 use WHMCS\Config;
 use WHMCS\Product;
 use WHMCS\Database\Capsule;
+use WHMCS\Config\Setting;
 require '../../../init.php';
+
 $code = $_GET['code'];
 if (strlen($code) > 0)
 {
@@ -14,7 +16,7 @@ if (strlen($code) > 0)
       }
     try {
        $cli = Capsule::table('zoho_mail_auth_table')->where('region',$location)->first();
-       $refurl='https://accounts.zoho'.$cli->region.'/oauth/v2/token?code='.$_GET['code'].'&client_id='.$cli->clientId.'&client_secret='.$cli->clientSecret.
+       $refurl='https://accounts.localzoho'.$cli->region.'/oauth/v2/token?code='.$_GET['code'].'&client_id='.$cli->clientId.'&client_secret='.$cli->clientSecret.
        '&redirect_uri='.$cli->redirectUrl.'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ&state=1a8d7v6r5rw4q2cadsetw&grant_type=authorization_code';
        $curl = curl_init();
        curl_setopt_array($curl, array(
@@ -43,7 +45,10 @@ if (strlen($code) > 0)
                                    ]
                                );
        if (strlen($jsonDecode->refresh_token)>0) {
-       	 ?><head> <meta http-equiv="refresh" content="0; url= <?php echo  '../../../admin/configproducts.php?action=edit&id='.$keywords[1].$keywords[0]?>"/> </head>
+        if(empty($keywords[2])) {
+          $keywords[2] = "admin";
+        }
+       	 ?><head> <meta http-equiv="refresh" content="0; url= <?php echo  '../../../'.$keywords[2].'/configproducts.php?action=edit&id='.$keywords[1].$keywords[0]?>"/></head>
        	 <?php
        } 
       } catch(Exception $e) {
@@ -80,14 +85,14 @@ if (strlen($code) > 0)
                             ':clientId' => $_POST['zm_ci'],
                             ':clientSecret' => $_POST['zm_cs'],
                             ':redirectUrl' => $_POST['zm_ru'],
-                            ':token' => $_POST['zm_tab_value'].'__'.$_POST['zm_pi'],
+                            ':token' => $_POST['zm_tab_value'].'__'.$_POST['zm_pi'].'__'.$_POST['zm_ad'],
                                  ]
                               );
     $pdo->commit();
    } catch(Exception $e) {
 	echo $e;
    }
-	$url='https://accounts.zoho'.$_POST['zm_dn'].'/oauth/v2/auth?response_type=code&client_id='.$_POST['zm_ci'].'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ&redirect_uri='.$_POST['zm_ru'].'&state=1a8d7v6r5rw4q2cadsetw&prompt=consent&access_type=offline';
+	$url='https://accounts.localzoho'.$_POST['zm_dn'].'/oauth/v2/auth?response_type=code&client_id='.$_POST['zm_ci'].'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ&redirect_uri='.$_POST['zm_ru'].'&state=1a8d7v6r5rw4q2cadsetw&prompt=consent&access_type=offline';
 	?>
    <head> <meta http-equiv="refresh" content="0; url= <?php echo $url?>"/> </head>  
    <?php
