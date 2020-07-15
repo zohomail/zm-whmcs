@@ -51,10 +51,10 @@ function zoho_mail_ConfigOptions()
                            </select><br><br>
                            <label>Client ID</label><br>
                            <input type="text" size="60" name="zm_ci" required/><br>
-                           Generated from <a href="https://accounts.localzoho.com/developerconsole" target=_blank>Zoho Developer Console</a><br><br>
+                           Generated from <a href="https://accounts.zoho.com/developerconsole" target=_blank>Zoho Developer Console</a><br><br>
                            <label>Client Secret</label><br>
                            <input type="text" size="60" name="zm_cs" required/><br>
-                           Generated from <a href="https://accounts.localzoho.com/developerconsole" target=_blank>Zoho Developer Console</a><br><br>
+                           Generated from <a href="https://accounts.zoho.com/developerconsole" target=_blank>Zoho Developer Console</a><br><br>
                            <label>Admin folder name</label><br>
                            <input type="text" size="60" name="zm_ad"/><br>
                            If you have a customized WHMCS admin directory name, please enter it here. You will be redirected here after authentication. Refer here for instructions.<a href="https://www.zoho.com/mail/help/partnerportal/whmcs-integration.html" target=_blank>Refer here</a> for instructions.<br><br>
@@ -248,7 +248,7 @@ function zoho_mail_AdminServicesTabFields(array $params)
              'Super Administrator' => $cli->superAdmin,
              'ZOID' => $cli->zoid,
              'Domain verification status' => $verificationStatus,
-             'URL to Manage Customers' => '<a href="https://mailadmin.localzoho.com/cpanel/index.do#managecustomers" target="blank">Click here</a>'
+             'URL to Manage Customers' => '<a href="https://mailadmin.zoho.com/cpanel/index.do#managecustomers" target="blank">Click here</a>'
 
 
         );
@@ -371,7 +371,7 @@ function get_access_token(array $params) {
 
         $curl = curl_init();
         $cli = Capsule::table('zoho_mail_auth_table')->first();
-        $urlAT = 'https://accounts.localzoho'.$cli->region.'/oauth/v2/token?refresh_token='.$cli->token.'&grant_type=refresh_token&client_id='.$cli->clientId.'&client_secret='.$cli->clientSecret.'&redirect_uri='.$cli->redirectUrl.'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ';
+        $urlAT = 'https://accounts.zoho'.$cli->region.'/oauth/v2/token?refresh_token='.$cli->token.'&grant_type=refresh_token&client_id='.$cli->clientId.'&client_secret='.$cli->clientSecret.'&redirect_uri='.$cli->redirectUrl.'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ';
         curl_setopt_array($curl, array(
                   CURLOPT_URL => $urlAT,
                   CURLOPT_RETURNTRANSFER => true,
@@ -401,7 +401,7 @@ function create_child_organization(array $params, $planName, $accessToken) {
                );
                $bodyJson = json_encode($bodyArr);
                $curlOrg = curl_init();
-               $urlOrg = 'https://mail.localzoho'.$cli->region.'/api/organization';
+               $urlOrg = 'https://mail.zoho'.$cli->region.'/api/organization';
                curl_setopt_array($curlOrg, array(
                           CURLOPT_URL => $urlOrg,
                           CURLOPT_RETURNTRANSFER => true,
@@ -463,7 +463,7 @@ function create_child_organization(array $params, $planName, $accessToken) {
 
 function get_child_org_url(array $params, $accessToken, $zoid) {
                         $cli = Capsule::table('zoho_mail_auth_table')->first();
-                        $urlPanel = 'https://mail.localzoho'.$cli->region.'/api/organization/'.$zoid.'?fields=encryptedZoid';
+                        $urlPanel = 'https://mail.zoho'.$cli->region.'/api/organization/'.$zoid.'?fields=encryptedZoid';
                         $curlPanel = curl_init();
                             curl_setopt_array($curlPanel, array(
                             CURLOPT_URL => $urlPanel,
@@ -483,7 +483,7 @@ function get_child_org_url(array $params, $accessToken, $zoid) {
                         curl_close($curlPanel);
                         if ($getPanelInfo == '200') {
                           $encryptedZoid = $respJsonPanel->data->encryptedZoid;
-                           return 'https://mail.localzoho'.$cli->region.'/cpanel/index.do?zoid='.$encryptedZoid.'&dname='.$params['domain'];
+                           return 'https://mail.zoho'.$cli->region.'/cpanel/index.do?zoid='.$encryptedZoid.'&dname='.$params['domain'];
                         }
                         return null;
 
