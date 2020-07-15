@@ -1,5 +1,7 @@
 <?php
 use WHMCS\Database\Capsule;
+use WHMCS\Utility\Environment\WebHelper;
+use WHMCS\Config\Setting;
 if (!defined("WHMCS")) {
     die("This file cannot be accessed directly");
 }
@@ -32,6 +34,8 @@ function zoho_mail_ConfigOptions()
 {  
          $patharray = array();
          $patharray = explode('/',$_SERVER['REQUEST_URI']);
+         $url = Setting::getValue('SystemURL');
+         $patharray[1] = $url;//"http://".$_SERVER['HTTP_HOST'].substr(getcwd(),strlen($_SERVER['DOCUMENT_ROOT'])));
          $config = array (
             'Provide Zoho API credentials'=>array(
                       'Description'=>
@@ -47,13 +51,16 @@ function zoho_mail_ConfigOptions()
                            </select><br><br>
                            <label>Client ID</label><br>
                            <input type="text" size="60" name="zm_ci" required/><br>
-                           Generated from <a href="https://accounts.zoho.com/developerconsole" target=_blank>Zoho Developer Console</a><br><br>
+                           Generated from <a href="https://accounts.localzoho.com/developerconsole" target=_blank>Zoho Developer Console</a><br><br>
                            <label>Client Secret</label><br>
                            <input type="text" size="60" name="zm_cs" required/><br>
-                           Generated from <a href="https://accounts.zoho.com/developerconsole" target=_blank>Zoho Developer Console</a><br><br>
+                           Generated from <a href="https://accounts.localzoho.com/developerconsole" target=_blank>Zoho Developer Console</a><br><br>
+                           <label>Admin folder name</label><br>
+                           <input type="text" size="60" name="zm_ad"/><br>
+                           If you have a customized WHMCS admin directory name, please enter it here. You will be redirected here after authentication. Refer here for instructions.<a href="https://www.zoho.com/mail/help/partnerportal/whmcs-integration.html" target=_blank>Refer here</a> for instructions.<br><br>
                            <label>Redirect URL</label><br>
-                           <input type="text" size="60" name="zm_ru" value='.$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].'/'.$patharray[1].'/modules/servers/zoho_mail/zm_oauthgrant.php required readonly/><br>
-                           Redirect URL used to generate Client ID and Client Secret. <a href="https://www.zoho.com/mail/help/partnerportal/whmcs-integration.html" target=_blank>Refer here</a> for instructions.<br><br>
+                           <input type="text" size="60" name="zm_ru" value='.$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].'/modules/servers/zoho_mail/zm_oauthgrant.php required readonly/><br>
+                           Redirect URL used to generate Client ID and Client Secret.<br><br>
                            <input type="hidden" id="zm_tab_value" name="zm_tab_value" value=""/>
                            <input type="hidden" name="zm_pi" value='.$_REQUEST['id'].'>
                            <button name="zm_submit" size="15">Authenticate</button>
@@ -84,154 +91,126 @@ function zoho_mail_ConfigOptions()
         return $config;
 }
 
-function zoho_mail_CreateAccount(array $params)
-{
-    $urlChildPanel;
-    $bodyJson;
-    try {
-        $curl = curl_init();
-        $arrClient = $params['clientsdetails'];
-        $cli = Capsule::table('zoho_mail_auth_table')->first();
-        $urlAT = 'https://accounts.zoho'.$cli->region.'/oauth/v2/token?refresh_token='.$cli->token.'&grant_type=refresh_token&client_id='.$cli->clientId.'&client_secret='.$cli->clientSecret.'&redirect_uri='.$cli->redirectUrl.'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ';
-        curl_setopt_array($curl, array(
-                  CURLOPT_URL => $urlAT,
-                  CURLOPT_RETURNTRANSFER => true,
-                  CURLOPT_ENCODING => "",
-                  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                  CURLOPT_CUSTOMREQUEST => "POST"
-                 ));
- 
-        $response = curl_exec($curl);
-        $accessJson = json_decode($response);
-        $getInfo = curl_getinfo($curl,CURLINFO_HTTP_CODE);
-        curl_close($curl);
-        if ( $getInfo == '200') {
-               $access_tok = $accessJson->access_token;
-               $bodyArr = array (
-                "firstName" => $arrClient['firstname'],
-                "lastName" => $arrClient['lastname'],
-                "emailId" => $arrClient['email'],
-                "domainName" => $params['domain']
-               );
-               $bodyJson = json_encode($bodyArr);
-               $curlOrg = curl_init();
-               $urlOrg = 'https://mail.zoho'.$cli->region.'/api/organization';
-               curl_setopt_array($curlOrg, array(
-                          CURLOPT_URL => $urlOrg,
-                          CURLOPT_RETURNTRANSFER => true,
-                          CURLOPT_ENCODING => "",
-                          CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                          CURLOPT_CUSTOMREQUEST => "POST",
-                          CURLOPT_POSTFIELDS => $bodyJson,
-                          CURLOPT_HTTPHEADER => array(
-                                    "authorization: Zoho-oauthtoken ".$accessJson->access_token,
-                                     "content-type: application/json"
-                               ),
-                        ));
-                        $responseOrg = curl_exec($curlOrg);
-                        $respOrgJson = json_decode($responseOrg);
-                        $getInfo = curl_getinfo($curlOrg,CURLINFO_HTTP_CODE);
-                        curl_close($curlOrg);
-                        $urlPanel = 'https://mail.zoho'.$cli->region.'/api/organization/'.$respOrgJson->data->zoid.'?fields=encryptedZoid';
-                        $curlPanel = curl_init();
-                            curl_setopt_array($curlPanel, array(
-                            CURLOPT_URL => $urlPanel,
-                            CURLOPT_RETURNTRANSFER => true,
-                            CURLOPT_ENCODING => "",
-                            CURLOPT_MAXREDIRS => 10,
-                            CURLOPT_TIMEOUT => 30,
-                            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                            CURLOPT_CUSTOMREQUEST => "GET",
-                            CURLOPT_HTTPHEADER => array(
-                                "authorization: Zoho-oauthtoken ".$accessJson->access_token
-                               ),
-                             ));
-                        $responsePanel = curl_exec($curlPanel);
-                        $respJsonPanel = json_decode($responsePanel);
-                        $getPanelInfo = curl_getinfo($curlPanel, CURLINFO_HTTP_CODE);
-                        curl_close($curlPanel);
-                        if ($getPanelInfo == '200') {
-                          $encryptedZoid = $respJsonPanel->data->encryptedZoid;
-                          $urlChildPanel = 'https://mail.zoho'.$cli->region.'/cpanel/index.do?zoid='.$encryptedZoid.'&dname='.$params['domain'];
-                        }
-                        if ( $getInfo == '200') 
-                        {
-                                        $pdo = Capsule::connection()->getPdo();
-                                        $pdo->beginTransaction();
-
-                                         try {
-                                            $statement = $pdo->prepare(
-                                                   'insert into zoho_mail (domain, zoid, isverified, superAdmin, url) values (:domain, :zoid, :isverified, :superAdmin, :url)'
-                                                   );
-
-                                             $statement->execute(
-                                                     [
-                                                           ':domain' => $respOrgJson->data->domainName,
-                                                           ':zoid' => $respOrgJson->data->zoid,
-                                                           ':isverified' => ($respOrgJson->data->isVerified)?'true':'false',
-                                                           ':superAdmin' => $respOrgJson->data->superAdmin,
-                                                           ':url' => $urlChildPanel
-                                                      ]
-                                                 );
-
-                                                 $pdo->commit();
-                                                 } catch (\Exception $e) {
-                                                                 return "Uh oh! {$e->getMessage()}".$urlChildPanel;
-                                                                 $pdo->rollBack();
-                                                  }
-
-                              return array ('success' => 'Mailbox has been created.');
-                        } else if ($getInfo == '400') {
-                          $updatedUserCount = Capsule::table('tblproducts')
-                            ->where('servertype','zoho_mail')
-                            ->update(
-                                  [
-                                   'configoption5' => '',
-                                   ]
-                               );
-                        }
-                        else 
-                        {
-                        return 'Failed    -->Description: '.$respOrgJson->status->description.' --->More Information:'.$respOrgJson->data->moreInfo.'--------------'.$getInfo.'--------'.$bodyJson;
-                    }
-
-        }
-        return 'failed'.$response;
-    } catch (Exception $e) {
-        logModuleCall(
-            'zoho_mail',
-            __FUNCTION__,
-            $params,
-            $e->getMessage(),
-            $e->getTraceAsString()
-        );
-        return $e->getMessage();
-    }
-    return 'success';
-}
 function zoho_mail_TestConnection(array $params)
 {
     try {
         // Call the service's connection test function.
+
         $success = true;
         $errorMsg = '';
     } catch (Exception $e) {
         // Record the error in WHMCS's module log.
         logModuleCall(
-            'zoho_mail',
+            'provisioningmodule',
             __FUNCTION__,
             $params,
             $e->getMessage(),
             $e->getTraceAsString()
         );
+
         $success = false;
         $errorMsg = $e->getMessage();
     }
+
     return array(
         'success' => $success,
         'error' => $errorMsg,
     );
 }
+
+function zoho_mail_AdminCustomButtonArray()
+{
+    return array(
+        "Create Mail Premium" => "buttonOneFunction",
+        "Create Workplace Standard" => "buttonTwoFunction",
+        "Create Workplace Professional" => "buttonThreeFunction",
+        "Create Mail Free" => "buttonFourFunction"
+    );
+}
+
+function zoho_mail_buttonOneFunction(array $params)
+{
+    try {
+      return create_child_organization($params, "mailPremiumTrial", get_access_token($params));
+    } catch (Exception $e) {
+        // Record the error in WHMCS's module log.
+        logModuleCall(
+            'zoho_maill',
+            __FUNCTION__,
+            $params,
+            $e->getMessage(),
+            $e->getTraceAsString()
+        );
+
+        return $e->getMessage();
+    }
+
+    return 'success';
+}
+
+function zoho_mail_buttonTwoFunction(array $params)
+{
+    try {
+      return create_child_organization($params, "basicTrial", get_access_token($params));
+    } catch (Exception $e) {
+        // Record the error in WHMCS's module log.
+        logModuleCall(
+            'zoho_maill',
+            __FUNCTION__,
+            $params,
+            $e->getMessage(),
+            $e->getTraceAsString()
+        );
+
+        return $e->getMessage();
+    }
+
+    return 'success';
+}
+
+function zoho_mail_buttonThreeFunction(array $params)
+{
+    try {
+      return create_child_organization($params, "professionalTrial", get_access_token($params));
+    } catch (Exception $e) {
+        // Record the error in WHMCS's module log.
+        logModuleCall(
+            'zoho_maill',
+            __FUNCTION__,
+            $params,
+            $e->getMessage(),
+            $e->getTraceAsString()
+        );
+
+        return $e->getMessage();
+    }
+
+    return 'success';
+}
+
+function zoho_mail_buttonFourFunction(array $params)
+{
+    try {
+      return create_child_organization($params, "free", get_access_token($params));
+    } catch (Exception $e) {
+        // Record the error in WHMCS's module log.
+        logModuleCall(
+            'zoho_maill',
+            __FUNCTION__,
+            $params,
+            $e->getMessage(),
+            $e->getTraceAsString()
+        );
+
+        return $e->getMessage();
+    }
+
+    return 'success';
+}
+
+
+
+
 function zoho_mail_AdminServicesTabFields(array $params)
 {
 
@@ -269,7 +248,7 @@ function zoho_mail_AdminServicesTabFields(array $params)
              'Super Administrator' => $cli->superAdmin,
              'ZOID' => $cli->zoid,
              'Domain verification status' => $verificationStatus,
-             'URL to Manage Customers' => '<a href="https://mailadmin.zoho.com/cpanel/index.do#managecustomers" target="blank">Click here</a>'
+             'URL to Manage Customers' => '<a href="https://mailadmin.localzoho.com/cpanel/index.do#managecustomers" target="blank">Click here</a>'
 
 
         );
@@ -384,4 +363,128 @@ function zoho_mail_ClientArea(array $params)
             ),
         );
     }
+}
+
+
+
+function get_access_token(array $params) {
+
+        $curl = curl_init();
+        $cli = Capsule::table('zoho_mail_auth_table')->first();
+        $urlAT = 'https://accounts.localzoho'.$cli->region.'/oauth/v2/token?refresh_token='.$cli->token.'&grant_type=refresh_token&client_id='.$cli->clientId.'&client_secret='.$cli->clientSecret.'&redirect_uri='.$cli->redirectUrl.'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ';
+        curl_setopt_array($curl, array(
+                  CURLOPT_URL => $urlAT,
+                  CURLOPT_RETURNTRANSFER => true,
+                  CURLOPT_ENCODING => "",
+                  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                  CURLOPT_CUSTOMREQUEST => "POST"
+                 ));
+ 
+        $response = curl_exec($curl);
+        $accessJson = json_decode($response);
+        $getInfo = curl_getinfo($curl,CURLINFO_HTTP_CODE);
+        curl_close($curl);
+        return $accessJson->access_token;
+
+}
+
+
+function create_child_organization(array $params, $planName, $accessToken) {
+              $arrClient = $params['clientsdetails'];
+              $cli = Capsule::table('zoho_mail_auth_table')->first();
+              $bodyArr = array (
+                "firstName" => $arrClient['firstname'],
+                "lastName" => $arrClient['lastname'],
+                "emailId" => $arrClient['email'],
+                "domainName" => $params['domain'],
+                "planName" => $planName
+               );
+               $bodyJson = json_encode($bodyArr);
+               $curlOrg = curl_init();
+               $urlOrg = 'https://mail.localzoho'.$cli->region.'/api/organization';
+               curl_setopt_array($curlOrg, array(
+                          CURLOPT_URL => $urlOrg,
+                          CURLOPT_RETURNTRANSFER => true,
+                          CURLOPT_ENCODING => "",
+                          CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                          CURLOPT_CUSTOMREQUEST => "POST",
+                          CURLOPT_POSTFIELDS => $bodyJson,
+                          CURLOPT_HTTPHEADER => array(
+                                    "authorization: Zoho-oauthtoken ".$accessToken,
+                                    "content-type: application/json"
+                               ),
+                        ));
+               $responseOrg = curl_exec($curlOrg);
+               $respOrgJson = json_decode($responseOrg);
+               $getInfo = curl_getinfo($curlOrg,CURLINFO_HTTP_CODE);
+               curl_close($curlOrg);
+               if ( $getInfo == '200') 
+                        {
+                                        $pdo = Capsule::connection()->getPdo();
+                                        $pdo->beginTransaction();
+
+                                         try {
+                                            $statement = $pdo->prepare(
+                                                   'insert into zoho_mail (domain, zoid, isverified, superAdmin, url) values (:domain, :zoid, :isverified, :superAdmin, :url)'
+                                                   );
+
+                                             $statement->execute(
+                                                     [
+                                                           ':domain' => $respOrgJson->data->domainName,
+                                                           ':zoid' => $respOrgJson->data->zoid,
+                                                           ':isverified' => ($respOrgJson->data->isVerified)?'true':'false',
+                                                           ':superAdmin' => $respOrgJson->data->superAdmin,
+                                                           ':url' => get_child_org_url($params, $accessToken, $respOrgJson->data->zoid)
+                                                      ]
+                                                 );
+
+                                                 $pdo->commit();
+                                                 } catch (Exception $e) {
+                                                                 return "Uh oh! {$e->getMessage()}".$urlChildPanel;
+                                                                 $pdo->rollBack();
+                                                  }
+
+                              return array ('success' => 'Mailbox has been created.'.$respOrgJson);
+                        } else if ($getInfo == '400') {
+                          $updatedUserCount = Capsule::table('tblproducts')
+                            ->where('servertype','zoho_mail')
+                            ->update(
+                                  [
+                                   'configoption5' => '',
+                                   ]
+                               );
+                        }
+                        else {
+                        return 'Failed -->Description: '.$respOrgJson->status->description.' --->More Information:'.$respOrgJson->data->moreInfo.'--------------'.$getInfo.'--------'.$bodyJson;
+                    }
+
+}
+
+
+function get_child_org_url(array $params, $accessToken, $zoid) {
+                        $cli = Capsule::table('zoho_mail_auth_table')->first();
+                        $urlPanel = 'https://mail.localzoho'.$cli->region.'/api/organization/'.$zoid.'?fields=encryptedZoid';
+                        $curlPanel = curl_init();
+                            curl_setopt_array($curlPanel, array(
+                            CURLOPT_URL => $urlPanel,
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_ENCODING => "",
+                            CURLOPT_MAXREDIRS => 10,
+                            CURLOPT_TIMEOUT => 30,
+                            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                            CURLOPT_CUSTOMREQUEST => "GET",
+                            CURLOPT_HTTPHEADER => array(
+                                "authorization: Zoho-oauthtoken ".$accessToken
+                               ),
+                             ));
+                        $responsePanel = curl_exec($curlPanel);
+                        $respJsonPanel = json_decode($responsePanel);
+                        $getPanelInfo = curl_getinfo($curlPanel, CURLINFO_HTTP_CODE);
+                        curl_close($curlPanel);
+                        if ($getPanelInfo == '200') {
+                          $encryptedZoid = $respJsonPanel->data->encryptedZoid;
+                           return 'https://mail.localzoho'.$cli->region.'/cpanel/index.do?zoid='.$encryptedZoid.'&dname='.$params['domain'];
+                        }
+                        return null;
+
 }
