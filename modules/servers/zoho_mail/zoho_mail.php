@@ -56,9 +56,6 @@ function zoho_mail_ConfigOptions()
                            <label>Client Secret</label><br>
                            <input type="text" size="60" name="zm_cs" required/><br>
                            Generated from <a href="https://accounts.zoho.com/developerconsole" target=_blank>Zoho Developer Console</a><br><br>
-                           <label>Admin folder name</label><br>
-                           <input type="text" size="60" name="zm_ad"/><br>
-                           If you have a customized WHMCS admin directory name, please enter it here. You will be redirected here after authentication. Refer here for instructions.<a href="https://www.zoho.com/mail/help/partnerportal/whmcs-integration.html" target=_blank>Refer here</a> for instructions.<br><br>
                            <label>Redirect URL</label><br>
                            <input type="text" size="60" name="zm_ru" value='.$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].'/'.$dir[1].'/modules/servers/zoho_mail/zm_oauthgrant.php required readonly/><br>
                            Redirect URL used to generate Client ID and Client Secret.<br><br>
