@@ -444,7 +444,7 @@ function create_child_organization(array $params, $planName, $accessToken) {
                                                                  $pdo->rollBack();
                                                   }
 
-                              return array ('success' => 'yes1 Mailbox has been created.'.$respOrgJson);
+                              return array ('success' => 'yes Mailbox has been created.'.$respOrgJson);
                         } else if ($getInfo == '400') {
                           $updatedUserCount = Capsule::table('tblproducts')
                             ->where('servertype','zoho_mail')
