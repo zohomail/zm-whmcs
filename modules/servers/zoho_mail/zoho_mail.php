@@ -45,7 +45,7 @@ function zoho_mail_ConfigOptions()
                            document.getElementById("zm_tab_value").value = tabval.toString();
                            </script>
                            <form action=../modules/servers/zoho_mail/zm_oauthgrant.php method=post>
-                           <label> Domain</label><br>
+                           <label>Domain</label><br>
                            <select name="zm_dn" required>
                            <option value=".com">.com</option>
                            <option value=".eu">.eu</option>
@@ -60,7 +60,7 @@ function zoho_mail_ConfigOptions()
                            <input type="text" size="60" name="zm_ad"/><br>
                            If you have a customized WHMCS admin directory name, please enter it here. You will be redirected here after authentication. Refer here for instructions.<a href="https://www.zoho.com/mail/help/partnerportal/whmcs-integration.html" target=_blank>Refer here</a> for instructions.<br><br>
                            <label>Redirect URL</label><br>
-                           <input type="text" size="60" name="zm_ru" value='.$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI'].$dir[1].'/modules/servers/zoho_mail/zm_oauthgrant.php required readonly/><br>
+                           <input type="text" size="60" name="zm_ru" value='.$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].'/'.$dir[1].'/modules/servers/zoho_mail/zm_oauthgrant.php required readonly/><br>
                            Redirect URL used to generate Client ID and Client Secret.<br><br>
                            <input type="hidden" id="zm_tab_value" name="zm_tab_value" value=""/>
                            <input type="hidden" name="zm_pi" value='.$_REQUEST['id'].'>
