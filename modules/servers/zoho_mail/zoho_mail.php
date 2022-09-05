@@ -36,7 +36,6 @@ function zoho_mail_ConfigOptions()
          $patharray = explode('/',$_SERVER['REQUEST_URI']);
          $url = Setting::getValue('SystemURL');
          $patharray[1] = $url;//"http://".$_SERVER['HTTP_HOST'].substr(getcwd(),strlen($_SERVER['DOCUMENT_ROOT'])));
-         $dir = preg_split("/\//", $_SERVER['PHP_SELF']);
          $config = array (
             'Provide Zoho API credentials'=>array(
                       'Description'=>
@@ -57,7 +56,7 @@ function zoho_mail_ConfigOptions()
                            <input type="text" size="60" name="zm_cs" required/><br>
                            Generated from <a href="https://accounts.zoho.com/developerconsole" target=_blank>Zoho Developer Console</a><br><br>
                            <label>Redirect URL</label><br>
-                           <input type="text" size="60" name="zm_ru" value='.$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].'/'.$dir[1].'/modules/servers/zoho_mail/zm_oauthgrant.php required readonly/><br>
+                           <input type="text" size="60" name="zm_ru" value='.$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['SERVER_NAME'].'/modules/servers/zoho_mail/zm_oauthgrant.php required readonly/><br>
                            Redirect URL used to generate Client ID and Client Secret.<br><br>
                            <input type="hidden" id="zm_tab_value" name="zm_tab_value" value=""/>
                            <input type="hidden" name="zm_pi" value='.$_REQUEST['id'].'>
@@ -366,24 +365,159 @@ function zoho_mail_ClientArea(array $params)
 
 
 function get_access_token(array $params) {
+    
+    $curl = curl_init();
+    $cli = Capsule::table('zoho_mail_auth_table')->first();
+    $urlAT = 'https://accounts.localzoho'.$cli->region.'/oauth/v2/token?refresh_token='.$cli->token.'&grant_type=refresh_token&client_id='.$cli->clientId.'&client_secret='.$cli->clientSecret.'&redirect_uri='.$cli->redirectUrl.'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ,ZohoPayments.partnersubscription.all,ZohoPayments.fullaccess.READ,ZohoPayments.leads.READ,ZohoPayments.transactions.READ';
+    curl_setopt_array($curl, array(
+        CURLOPT_URL => $urlAT,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => "",
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => "POST"
+    ));
+    
+    $response = curl_exec($curl);
+    $accessJson = json_decode($response);
+    $getInfo = curl_getinfo($curl,CURLINFO_HTTP_CODE);
+    curl_close($curl);
+    return $accessJson->access_token;
+    
+}
 
-        $curl = curl_init();
-        $cli = Capsule::table('zoho_mail_auth_table')->first();
-        $urlAT = 'https://accounts.zoho'.$cli->region.'/oauth/v2/token?refresh_token='.$cli->token.'&grant_type=refresh_token&client_id='.$cli->clientId.'&client_secret='.$cli->clientSecret.'&redirect_uri='.$cli->redirectUrl.'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ';
-        curl_setopt_array($curl, array(
-                  CURLOPT_URL => $urlAT,
-                  CURLOPT_RETURNTRANSFER => true,
-                  CURLOPT_ENCODING => "",
-                  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                  CURLOPT_CUSTOMREQUEST => "POST"
-                 ));
- 
-        $response = curl_exec($curl);
-        $accessJson = json_decode($response);
-        $getInfo = curl_getinfo($curl,CURLINFO_HTTP_CODE);
-        curl_close($curl);
-        return $accessJson->access_token;
+function get_assigned_plan(array $params, $accessToken) {
+    $cli1 = Capsule::table('zoho_mail')->where('domain',$params['domain'])->first();
+    $arrClient = $params['clientsdetails'];
+    $cli = Capsule::table('zoho_mail_auth_table')->first();
+    $bodyArr = array (
+        "serviceid" => 1501,
+        "email" => $arrClient['email']
+    );
+    $bodyJson = json_encode($bodyArr);
+    $curlOrg = curl_init();
+    $urlOrg = 'https://store.localzoho'.$cli->region.'/restapi/partner/v1/json/subscription?JSONString=%7B%22serviceid%22%3A1501%2C%22email%22%3A%22'.$arrClient['email'].'%22%7D';
+    curl_setopt_array($curlOrg, array(
+        CURLOPT_URL => $urlOrg,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => "",
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => "GET",
+        CURLOPT_HTTPHEADER => array(
+            "authorization: Zoho-oauthtoken ".$accessToken
+        ),
+    ));
+    $responseOrg = curl_exec($curlOrg);
+    $respOrgJson = json_decode($responseOrg);
+    $arr = json_decode($responseOrg,true);
+    $getInfo = curl_getinfo($curlOrg,CURLINFO_HTTP_CODE);
+    curl_close($curlOrg);
+    if ( $getInfo == '200')
+    {
+        if($respOrgJson->result == "success" && $arr["licensedetails"]["paiduser"]){
+            return 'Plan name: '.$arr["licensedetails"]["planname"].'        | Pay period: '.$arr["licensedetails"]["payperiod"];
+        }
+        else if($respOrgJson->result == "success"){
+            
+            $curlOrg = curl_init();
+            $urlOrg = 'https://mail.localzoho'.$cli->region.'/api/organization/'.(string)$cli1->zoid;
+            curl_setopt_array($curlOrg, array(
+                CURLOPT_URL => $urlOrg,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => "",
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => "GET",
+                CURLOPT_HTTPHEADER => array(
+                    "authorization: Zoho-oauthtoken ".$accessToken
+                ),
+            ));
+            $responseOrg = curl_exec($curlOrg);
+            $respOrgJson = json_decode($responseOrg);
+            $arr = json_decode($responseOrg,true);
+            $getInfo = curl_getinfo($curlOrg,CURLINFO_HTTP_CODE);
+            curl_close($curlOrg);
+            if ( $getInfo == '200')
+            {
+                return $arr["data"]["planType"].$arr["data"]["basePlan"].$responseOrg;
+            }
+            else {
+                return 'Not piad user/ In trail plans'.$responseOrg.$urlOrg;
+            }
+        }
+        else {
+            return 'No such user exist in this service';
+        }
+    }
+    else {
+        return 'Failed -->Description: '.$responseOrg.$respOrgJson->status->description.'---'.$bodyJson.'---'.$urlOrg.'--'.$accessToken;
+    }
+    
+}
 
+
+function addSubscriptionPlan(array $params, $accessToken)
+{
+    $arrClient = $params['clientsdetails'];
+    $cli = Capsule::table('zoho_mail_auth_table')->first();
+    $bodyArr = array (
+        "serviceid" => 1501,
+        "email" => $arrClient['email'],
+        "customer" => array(
+            "companyname" => $arrClient['companyname'],
+            "street" => $arrClient['address1'],
+            "city" => $arrClient['city'],
+            "state" => $arrClient['state'],
+            "country" => $arrClient['country'],
+            "zipcode" => $arrClient['postcode'],
+            "phone" => $arrClient['phonenumber']
+        ),
+        "subscription" => array(
+            "plan" => 17034,
+            "addons" => [array("id" => 17084, "count" => 1)],
+            "payperiod" => "YEAR"
+        )
+    );
+    
+    $bodyJson = json_encode($bodyArr);
+    
+    $curlOrg = curl_init();
+    $urlOrg = 'https://store.localzoho'.$cli->region.'/restapi/partner/v1/json/subscription';
+    curl_setopt_array($curlOrg, array(
+        CURLOPT_URL => $urlOrg,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => "",
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => "POST",
+        CURLOPT_POSTFIELDS =>  array('JSONString'=> $bodyJson),
+        CURLOPT_HTTPHEADER => array(
+            "authorization: Zoho-oauthtoken ".$accessToken,
+            "content-type: multipart/form-data"
+        ),
+    ));
+    $responseOrg = curl_exec($curlOrg);
+    $respOrgJson = json_decode($responseOrg);
+    $getInfo = curl_getinfo($curlOrg,CURLINFO_HTTP_CODE);
+    curl_close($curlOrg);
+    if ( $getInfo == '200')
+    {
+        if($respOrgJson->result == "success")
+            return 'User added successfully';
+            else
+                return 'License already available for the user';
+                
+    } else if ($getInfo == '400') {
+        $updatedUserCount = Capsule::table('tblproducts')
+        ->where('servertype','zoho_mail')
+        ->update(
+            [
+                'configoption5' => '',
+            ]
+            );
+        return 'failed-->'.$responseOrg.$bodyJson.$urlOrg;
+    }
+    else {
+        return 'Failed -->Description: '.$respOrgJson->status->description.' --->More Information:'.$accessToken.'---'.$cli->token.$respOrgJson->data->moreInfo.'--------------'.$getInfo.'--------'.$bodyJson;
+    }
 }
 
 
