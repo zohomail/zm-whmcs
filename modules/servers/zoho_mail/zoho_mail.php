@@ -49,6 +49,8 @@ function zoho_mail_ConfigOptions()
                            <select name="zm_dn" required>
                            <option value=".com">.com</option>
                            <option value=".eu">.eu</option>
+                           <option value=".com.au">.com.au</option>
+                           <option value=".in">.in</option>
                            </select><br><br>
                            <label>Client ID</label><br>
                            <input type="text" size="60" name="zm_ci" required/><br>
