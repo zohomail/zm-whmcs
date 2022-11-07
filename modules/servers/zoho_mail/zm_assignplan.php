@@ -143,8 +143,8 @@ function extendTrialPlan($accessToken,$userid){
     $email = $clientdetails['email'];
     $cli = Capsule::table('zoho_mail')->where('superAdmin',$email)->first();
     $curl = curl_init();
-    
-    $urlOrg = 'https://mailadmin.zoho'.$cli->region.'/api/organization/'.(string)$cli->zoid.'/extendTrial';
+    $cli1 = Capsule::table('zoho_mail_auth_table')->first();
+    $urlOrg = 'https://mailadmin.zoho'.$cli1->region.'/api/organization/'.(string)$cli->zoid.'/extendTrial';
     curl_setopt_array($curl, array(
         CURLOPT_URL => $urlOrg,
         CURLOPT_RETURNTRANSFER => true,
