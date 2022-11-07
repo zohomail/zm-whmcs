@@ -144,7 +144,7 @@ function extendTrialPlan($accessToken,$userid){
     $cli = Capsule::table('zoho_mail')->where('superAdmin',$email)->first();
     $curl = curl_init();
     
-    $urlOrg = 'https://mailadmin.zoho.com/api/organization/'.(string)$cli->zoid.'/extendTrial';
+    $urlOrg = 'https://mailadmin.zoho'.$cli->region.'/api/organization/'.(string)$cli->zoid.'/extendTrial';
     curl_setopt_array($curl, array(
         CURLOPT_URL => $urlOrg,
         CURLOPT_RETURNTRANSFER => true,
@@ -188,8 +188,9 @@ else if($plan == "Workplace Premium Trial"){$plan = "mailPremiumTrial";}
     }
     $email = $clientdetails['email'];
     $cli = Capsule::table('zoho_mail')->where('superAdmin',$email)->first();
+    $cli1 = Capsule::table('zoho_mail_auth_table')->first();
     $curl = curl_init();
-    $urlOrg = 'https://mailadmin.zoho.com/api/organization/'.(string)$cli->zoid.'/enableTrial?planName='.$plan;
+    $urlOrg = 'https://mailadmin.zoho'.$cli1->region.'/api/organization/'.(string)$cli->zoid.'/enableTrial?planName='.$plan;
     curl_setopt_array($curl, array(
         CURLOPT_URL => $urlOrg,
         CURLOPT_RETURNTRANSFER => true,

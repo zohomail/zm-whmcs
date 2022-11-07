@@ -108,7 +108,8 @@ function getSubscriptionPlan($accessToken,$email) {
 function getOrgDetails($accessToken,$domain)
 {
     $curlOrg = curl_init();
-    $urlOrg = 'https://mail.zoho.com/api/organization?mode=getCustomerOrgDetails&searchKey='.$domain;
+    $cli = Capsule::table('zoho_mail_auth_table')->first();
+    $urlOrg = 'https://mail.zoho'.$cli->region.'/api/organization?mode=getCustomerOrgDetails&searchKey='.$domain;
     
     curl_setopt_array($curlOrg, array(
         CURLOPT_URL => $urlOrg,
