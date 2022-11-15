@@ -588,7 +588,7 @@ $("#downgradetofree").click(function(e){
     $.post("../modules/servers/zoho_mail/zm_subscriptionplan.php",{
         userID: ' . $_REQUEST['userid'] .',
         case : "downgradetofree",
-        comment : "developer"
+        comment : "Free features satisfies my needs"
     })
     .done(function(result, status, xhr){
         if(result == "success"){
