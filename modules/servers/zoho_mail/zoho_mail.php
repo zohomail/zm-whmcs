@@ -1549,7 +1549,7 @@ function create_child_organization(array $params, $planName, $accessToken)
             $pdo->rollBack();
         }
         return array(
-            'success' => 'Mailbox has been created.' . $respOrgJson
+            'success' => 'Mailbox has been created.' 
         );
     } else if ($getInfo == '400') {
         $updatedUserCount = Capsule::table('tblproducts')->where('servertype', 'zoho_mail')->update([
@@ -1558,7 +1558,7 @@ function create_child_organization(array $params, $planName, $accessToken)
     } else if ($getInfo == '500') {
         return $respOrgJson->data->moreInfo . '. To map, please send this link to your customer and ask them to tag you using your partner code. "https://store.zoho.com/html/store/tagyourpartner.html"';
     } else {
-        return 'Failed -->Description: ' . $respOrgJson->status->description . ' --->More Information:' . $respOrgJson->data->moreInfo . '--------------' . $getInfo . '--------' . $bodyJson;
+        return 'Failed -->Description: ' . $respOrgJson->status->description . ' --->More Information:' . $respOrgJson->data->moreInfo ;
     }
 }
 

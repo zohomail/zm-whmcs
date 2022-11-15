@@ -223,7 +223,7 @@ else if($plan == "Mail Premium Trial"){$plan = "mailPremiumTrial";}
                 'configoption5' => '',
             ]
             );
-        return 'failed-->'.$responseOrg.$urlOrg;
+        return 'failed-->'.$responseOrg;
     }
     else {
         return 'Failed -->Description: '.$responseOrg;
@@ -278,7 +278,7 @@ function addSubscriptionPlan(array $subscription,$accessToken,array $customer,$e
         return 'failed-->'.$responseOrg;
     }
     else {
-        return 'Failed -->Description: '.$respOrgJson->status->description.' --->More Information:'.$accessToken.'---'.$cli->token.$respOrgJson->data->moreInfo.'--------------'.$getInfo.'--------'.$bodyJson;
+        return 'Failed -->Description: '.$respOrgJson->status->description;
     }
 }
 
@@ -330,7 +330,7 @@ function modifySubscriptionPlan(array $subscription,$accessToken,$email)
         return 'failed-->'.$responseOrg;
     }
     else {
-        return 'Failed -->Description: '.$respOrgJson->status->description.' --->More Information:';
+        return 'Failed -->Description: '.$respOrgJson->status->description;
     }
 }
 
