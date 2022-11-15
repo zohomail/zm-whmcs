@@ -14,10 +14,10 @@ if($extend == "true"){
     
     echo "<script>alert('{$status}');</script>";
 }
-else if($plan == "Workplace Standard Trial" || $plan == "Workplace Professional Trial" || $plan == "Workplace Premium Trial"){
-     $accessToken = get_access_token();
-     $status = assignTrialPlan($plan, $accessToken,$userid);
-     echo "<script>alert('{$status}');</script>";
+else if($plan == "Workplace Standard Trial" || $plan == "Workplace Professional Trial" || $plan == "Mail Premium Trial"){
+    $accessToken = get_access_token();
+    $status = assignTrialPlan($plan, $accessToken,$userid);
+    echo "<script>alert('{$status}');</script>";
 }
 else{
     $userid = $_POST['zm_uid'];
@@ -179,7 +179,7 @@ function assignTrialPlan($plan, $accessToken,$userid)
 {
 if($plan == "Workplace Standard Trial"){$plan = "basicTrial";}
 else if($plan == "Workplace Professional Trial"){$plan = "professionalTrial";}
-else if($plan == "Workplace Premium Trial"){$plan = "mailPremiumTrial";}
+else if($plan == "Mail Premium Trial"){$plan = "mailPremiumTrial";}
     $conn = Capsule::connection()->getPdo();
     if(Capsule::schema()->hasTable('tblclients')){
         $sql = "SELECT email FROM tblclients WHERE id={$userid}";

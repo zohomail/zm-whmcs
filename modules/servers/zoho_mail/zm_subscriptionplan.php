@@ -10,36 +10,29 @@ require '../../../init.php';
 
 $userid = $_REQUEST['userID'];
 $case = $_REQUEST['case'];
-
+$conn = Capsule::connection()->getPdo();
+if(Capsule::schema()->hasTable('tblclients')){
+    $sql = "SELECT email FROM tblclients WHERE id={$userid}";
+    $result = $conn->query($sql);
+    $clientdetails = $result->fetch();
+}
+$email = $clientdetails['email'];
 if($case == "getOrgdetails")
 {
-    $conn = Capsule::connection()->getPdo();
-    if(Capsule::schema()->hasTable('tblclients')){
-        $sql = "SELECT email FROM tblclients WHERE id={$userid}";
-        $result = $conn->query($sql);
-        $clientdetails = $result->fetch();
-    }
-    $email = $clientdetails['email'];
-    
     $row = Capsule::table('zoho_mail')->where('superAdmin',$email)->first();
     $domain = $row->domain;
     $accessToken = get_access_token();
     $status = getOrgDetails($accessToken,$domain);
 }else if($case == "getSubscription details")
 {
-    $conn = Capsule::connection()->getPdo();
-    if(Capsule::schema()->hasTable('tblclients')){
-        $sql = "SELECT email FROM tblclients WHERE id={$userid}";
-        $result = $conn->query($sql);
-        $clientdetails = $result->fetch();
-    }
-    $email = $clientdetails['email'];
     $accessToken = get_access_token();
-    
     $status = getSubscriptionPlan($accessToken,$email);
 }
+else if($case == "downgradetofree"){
+    $status = complete_dongradetofree(get_access_token(),$email,$_REQUEST['comment']);
+}
 echo $status;
- 
+
 function getSubscriptionPlan($accessToken,$email) {
     $cli1 = Capsule::table('zoho_mail')->where('domain',$params['domain'])->first();
     $arrClient = $params['clientsdetails'];
@@ -72,30 +65,30 @@ function getSubscriptionPlan($accessToken,$email) {
             
             $cli = Capsule::table('zoho_mail')->where('superAdmin',$email)->first();
             $cli1 = Capsule::table('zoho_mail_auth_table')->first();
-                         $curlOrg1 = curl_init();
-                         $urlOrg1 = 'https://mail.zoho'.$cli1->region.'/api/organization/'.(string)$cli->zoid;
-                         
-                         curl_setopt_array($curlOrg1, array(
-                         CURLOPT_URL => $urlOrg1,
-                         CURLOPT_RETURNTRANSFER => true,
-                         CURLOPT_ENCODING => "",
-                         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                         CURLOPT_CUSTOMREQUEST => "GET",
-                         CURLOPT_HTTPHEADER => array(
-                             "authorization: Zoho-oauthtoken ".$accessToken
-                             )
-                         ));
-                         
-                         $responseOrg1 = curl_exec($curlOrg1);
-                         $respOrgJson1 = json_decode($responseOrg1);
-                         $arr = json_decode($responseOrg1,true);
-                         $getInfo = curl_getinfo($curlOrg1,CURLINFO_HTTP_CODE);
-                         curl_close($curlOrg1);
-                         if ( $getInfo == '200')
-                             {
-                                 return $arr["data"]["basePlan"];
-                         }
-                         return $responseOrg1;
+            $curlOrg1 = curl_init();
+            $urlOrg1 = 'https://mail.zoho'.$cli1->region.'/api/organization/'.(string)$cli->zoid;
+            
+            curl_setopt_array($curlOrg1, array(
+                CURLOPT_URL => $urlOrg1,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => "",
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => "GET",
+                CURLOPT_HTTPHEADER => array(
+                    "authorization: Zoho-oauthtoken ".$accessToken
+                )
+            ));
+            
+            $responseOrg1 = curl_exec($curlOrg1);
+            $respOrgJson1 = json_decode($responseOrg1);
+            $arr = json_decode($responseOrg1,true);
+            $getInfo = curl_getinfo($curlOrg1,CURLINFO_HTTP_CODE);
+            curl_close($curlOrg1);
+            if ( $getInfo == '200')
+            {
+                return $arr["data"]["basePlan"];
+            }
+            return $responseOrg1;
         }
         else if($respOrgJson->result == "success"){
             return $responseOrg;
@@ -107,6 +100,7 @@ function getSubscriptionPlan($accessToken,$email) {
 
 function getOrgDetails($accessToken,$domain)
 {
+    //echo "<script>alert('1');</script>";
     $curlOrg = curl_init();
     $cli = Capsule::table('zoho_mail_auth_table')->first();
     $urlOrg = 'https://mail.zoho'.$cli->region.'/api/organization?mode=getCustomerOrgDetails&searchKey='.$domain;
@@ -137,6 +131,43 @@ function getOrgDetails($accessToken,$domain)
     }
     else
         echo $responseOrg;
+}
+
+function complete_dongradetofree($accessToken,$email,$comment){
+    
+    $curl = curl_init();
+    $cli = Capsule::table('zoho_mail_auth_table')->first();
+    $urlAT = 'https://store.zoho'.$cli->region.'/restapi/partner/v1/json/subscription?JSONString=%7B%22serviceid%22%20%3A%201501%2C%22email%22%20%3A%20%22'.$email.'%22%2C%22'.$comment.'%22%20%3A%20%22developer%22%7D';
+    curl_setopt_array($curl, array(
+        CURLOPT_URL => $urlAT,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => "",
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => "DELETE",
+        CURLOPT_HTTPHEADER => array(
+            'authorization: Zoho-oauthtoken '.$accessToken
+        ),
+    ));
+    
+    $response = curl_exec($curl);
+    $respOrgJson = json_decode($response);
+    $arr = json_decode($response,true);
+    $getInfo = curl_getinfo($curl,CURLINFO_HTTP_CODE);
+    curl_close($curl);
+    if ( $getInfo == '200')
+    {
+        if($respOrgJson->result == "success"){
+            return $respOrgJson->result;
+        }
+        else{
+            return $respOrgJson->ERRORMSG;
+        }
+    }
+    else
+        return $response;
 }
 
 function get_access_token() {

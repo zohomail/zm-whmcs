@@ -312,7 +312,7 @@ function zoho_mail_AdminServicesTabFields(array $params)
     
 <input type="radio" name="JTP" id="JTP" checked="checked" value="Workplace Standard Trial">Workplace Standard Trial<br>
 <input type="radio" name="JTP" id="JTP" value="Workplace Professional Trial">Workplace Professional Trial<br>
-<input type="radio" name="JTP" id="JTP" value="Workplace Premium Trial">Workplace Premium Trial<br>
+<input type="radio" name="JTP" id="JTP" value="Mail Premium Trial">Mail Premium Trial<br>
 <br><br><input type="hidden" name="zm_uid" value=' . $_REQUEST['userid'] . '>
     
 <label>Explore! our premium features.</lable><br><br>
@@ -324,6 +324,7 @@ function zoho_mail_AdminServicesTabFields(array $params)
     <input id="open" type="button" onclick="openForm()" value="Assign Paid Plan"/>
     <input id="openstartTrial" type="button" onclick="openstartTrialForm()" value="StartTrial" />
     <input id="openExtendTrial" type="button" onclick="openExtendTrialForm()" value="ExtendTrial" />
+    <input id="downgradetofree" type="button" value="Complete downgrade to free" />
     </div>
     <div class="form-popup" id="planAssignForm">
         <form id="myForm" action=../modules/servers/zoho_mail/zm_assignplan.php method=post>
@@ -415,7 +416,7 @@ function zoho_mail_AdminServicesTabFields(array $params)
     var isExtendTrial = false;
 document.getElementById("trialAssignForm").style.display = "none";
 document.getElementById("extendtrialForm").style.display = "none";
-                    
+document.getElementById("downgradetofree").style.display = "none";
 document.getElementById("openstartTrial").style.display = "none";
 document.getElementById("openExtendTrial").style.display = "none";
  $(document).ready(function(){
@@ -429,12 +430,23 @@ $.ajax({
       })
          .done( function (responseText) {
             json = JSON.parse(responseText);
+            
 if(json.data[0].isTrialAllowed ){
     isStartTrial = true;
     document.getElementById("openstartTrial").style.display = "inline-block";}
 if(json.data[0].extendTrial ){
    isExtendTrial = true;
 document.getElementById("openExtendTrial").style.display = "inline-block";}
+            
+if((isStartTrial || isExtendTrial) || json.data[0].basePlan == "Mail Free")
+{
+    document.getElementById("downgradetofree").style.display = "none";
+}
+else{
+            
+document.getElementById("downgradetofree").style.display = "inline-block";
+}
+            
          $("#myButton3").click(function () {
     $("#mytrialform").submit();
   });
@@ -461,7 +473,6 @@ var status = openWindow();
 var click = "";
 // Get the <span> element that closes the modal
 var span = document.getElementsByClassName("close")[0];
-console.log(span.onclick);
 if(status == true){
   modal.style.display = "block";}
             
@@ -573,6 +584,24 @@ var extra_25GB = 0;
 var extra_50GB = 0;
 var extra_100GB = 0;
 var extra_200GB = 0;
+$("#downgradetofree").click(function(e){
+    $.post("../modules/servers/zoho_mail/zm_subscriptionplan.php",{
+        userID: ' . $_REQUEST['userid'] .',
+        case : "downgradetofree",
+        comment : "developer"
+    })
+    .done(function(result, status, xhr){
+        if(result == "success"){
+            alert("Cancelled and moved to Free Plan");
+            location.reload();
+        }
+else{
+    alert(result);
+}
+     })
+    .fail(function(xhr, status, error){
+        $("#message").html("Result: " + status + " " + error + " " + xhr.status + " " + xhr.statusText)})
+});
             
        var obj = JSON.parse(json);
 $("#open").click(function (e) {
@@ -1391,7 +1420,7 @@ function zoho_mail_ClientArea(array $params)
             'tabOverviewReplacementTemplate' => $templateFile,
             'templateVariables' => array(
                 'mailUrl' => 'https://mail.zoho.com',
-                'panelUrl' => $urlToPanel
+                'panelUrl' => ''.$urlToPanel
             )
         );
     } catch (Exception $e) {
@@ -1413,7 +1442,7 @@ function get_assigned_plan(string $email,$accessToken)
     $cli1 = Capsule::table('zoho_mail')->where('superAdmin',$email)->first();
     $curlOrg1 = curl_init();
     $urlOrg1 = 'https://mail.zoho'.$cli->region.'/api/organization/'.(string)$cli1->zoid;
-    
+    $status = "";
     curl_setopt_array($curlOrg1, array(
         CURLOPT_URL => $urlOrg1,
         CURLOPT_RETURNTRANSFER => true,
@@ -1434,10 +1463,10 @@ function get_assigned_plan(string $email,$accessToken)
         return $arr["data"]["basePlan"];
     }
     else{
-        return '';
+        $status = '';
     }
-    //get_customer_list(get_access_token(array()));
-    if (Capsule::schema()->hasTable('zoho_mail_customerlist_table')) {
+    get_customer_list(get_access_token(array()));
+    if ($status == '' && Capsule::schema()->hasTable('zoho_mail_customerlist_table')) {
         $conn = Capsule::connection()->getPdo();
         $result = $conn->query("SELECT Plan FROM zoho_mail_customerlist_table WHERE Email='" . $email . "'");
         while ($currentRow = $result->fetch()) {
@@ -1671,8 +1700,20 @@ function get_customer_list($accessToken)
                     $dt = strtotime($newRow["RegistrationDate"]);
                     $newRow["RenewalDate"] = date("Y-m-d", strtotime("+1 month", $dt));
                 }
-                $newRow["ManageUrl"] = 'https://store.zoho.com/store/reseller.do?profileId=' . $row['profile_id'];
-                $newRow["LicenseUrl"] = 'https://mailadmin.zoho.com/cpanel/home.do?zaaid='.$newRow["CustomId"].'#dashboard';
+                $newRow["ManageUrl"] = 'https://store.zoho' . $cli->region . '/store/reseller.do?profileId=' . $row['profile_id'];
+                
+                $domain = explode("@",$newRow["Email"]);
+                $isMCPmapped = true;
+                
+                $data = getOrgDetails($accessToken,$domain[1]);
+                //$isMCPmapped = empty($data);
+                
+                if($isMCPmapped){
+                    $newRow["LicenseUrl"] ='https://mailadmin.zoho' . $cli->region . '/cpanel/home.do?zaaid='.$newRow["CustomId"].'#dashboard';
+                }
+                else{
+                    $newRow["LicenseUrl"] = 'Not mapped';
+                }
                 
                 $statement->execute($newRow);
             }
@@ -1682,6 +1723,41 @@ function get_customer_list($accessToken)
         $conn->rollback();
         throw $e;
     }
+}
+
+function getOrgDetails($accessToken,string $domain)
+{
+    $curlOrg = curl_init();
+    $cli = Capsule::table('zoho_mail_auth_table')->first();
+    $urlOrg = 'https://mail.zoho'.$cli->region.'/api/organization?mode=getCustomerOrgDetails&searchKey='.$domain;
+    
+    curl_setopt_array($curlOrg, array(
+        CURLOPT_URL => $urlOrg,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => "",
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => "GET",
+        CURLOPT_HTTPHEADER => array(
+            "authorization: Zoho-oauthtoken " . $accessToken
+        )
+    ));
+    $responseOrg = curl_exec($curlOrg);
+    return $responseOrg;
+    $respOrgJson = json_decode($responseOrg);
+    $arr = json_decode($responseOrg,true);
+    $getInfo = curl_getinfo($curlOrg,CURLINFO_HTTP_CODE);
+    curl_close($curlOrg);
+    if ( $getInfo == '200')
+    {
+        if($respOrgJson->status->description == "success")
+        {
+            return $respOrgJson->data;
+        }
+    }
+    else
+        echo $responseOrg;
 }
 
 function get_child_org_url(array $params, $accessToken, $zoid)
@@ -1707,7 +1783,7 @@ function get_child_org_url(array $params, $accessToken, $zoid)
     curl_close($curlPanel);
     if ($getPanelInfo == '200') {
         $encryptedZoid = $respJsonPanel->data->encryptedZoid;
-        return 'https://mail.zoho' . $cli->region . '/cpanel/index.do?zoid=' . $encryptedZoid . '&dname=' . $params['domain'];
+        return 'https://mail.localzoho' . $cli->region . '/cpanel/index.do?zoid=' . $encryptedZoid . '&dname=' . $params['domain'];
     }
     return null;
 }
