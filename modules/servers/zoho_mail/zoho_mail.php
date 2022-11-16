@@ -1,9 +1,7 @@
 <?php
-header('X-Frame-Options: GOFORIT');
 use WHMCS\Database\Capsule;
 use WHMCS\Utility\Environment\WebHelper;
 use WHMCS\Config\Setting;
-use Respect\Validation\Rules\Length;
 if (! defined("WHMCS")) {
     die("This file cannot be accessed directly");
 }
@@ -1783,7 +1781,7 @@ function get_child_org_url(array $params, $accessToken, $zoid)
     curl_close($curlPanel);
     if ($getPanelInfo == '200') {
         $encryptedZoid = $respJsonPanel->data->encryptedZoid;
-        return 'https://mail.localzoho' . $cli->region . '/cpanel/index.do?zoid=' . $encryptedZoid . '&dname=' . $params['domain'];
+        return 'https://mail.zoho' . $cli->region . '/cpanel/index.do?zoid=' . $encryptedZoid . '&dname=' . $params['domain'];
     }
     return null;
 }

@@ -29,7 +29,7 @@ if($case == "getOrgdetails")
     $status = getSubscriptionPlan($accessToken,$email);
 }
 else if($case == "downgradetofree"){
-    $status = complete_dongradetofree(get_access_token(),$email,$_REQUEST['comment']);
+    $status = complete_downgradetofree(get_access_token(),$email,$_REQUEST['comment']);
 }
 echo $status;
 
@@ -133,11 +133,11 @@ function getOrgDetails($accessToken,$domain)
         echo $responseOrg;
 }
 
-function complete_dongradetofree($accessToken,$email,$comment){
+function complete_downgradetofree($accessToken,$email,$comment){
     
     $curl = curl_init();
     $cli = Capsule::table('zoho_mail_auth_table')->first();
-    $urlAT = 'https://store.zoho'.$cli->region.'/restapi/partner/v1/json/subscription?JSONString=%7B%22serviceid%22%20%3A%201501%2C%22email%22%20%3A%20%22'.$email.'%22%2C%22'.$comment.'%22%20%3A%20%22developer%22%7D';
+    $urlAT = 'https://store.zoho'.$cli->region.'/restapi/partner/v1/json/subscription?JSONString=%7B%22serviceid%22%20%3A%201501%2C%22email%22%20%3A%20%22'.$email.'%22%2C%22comment%22%20%3A%20%22'.$comment.'%22%7D';
     curl_setopt_array($curl, array(
         CURLOPT_URL => $urlAT,
         CURLOPT_RETURNTRANSFER => true,
