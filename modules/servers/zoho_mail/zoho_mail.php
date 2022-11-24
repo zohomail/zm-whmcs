@@ -1,5 +1,4 @@
 <?php
-header('X-Frame-Options: GOFORIT');
 use WHMCS\Database\Capsule;
 use WHMCS\Utility\Environment\WebHelper;
 use WHMCS\Config\Setting;
