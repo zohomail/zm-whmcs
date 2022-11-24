@@ -17,7 +17,7 @@ if (strlen($code) > 0)
     try {
        $cli = Capsule::table('zoho_mail_auth_table')->where('region',$location)->first();
        $refurl='https://accounts.zoho'.$cli->region.'/oauth/v2/token?code='.$_GET['code'].'&client_id='.$cli->clientId.'&client_secret='.$cli->clientSecret.
-       '&redirect_uri='.$cli->redirectUrl.'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ&state=1a8d7v6r5rw4q2cadsetw&grant_type=authorization_code';
+       '&redirect_uri='.$cli->redirectUrl.'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.UPDATE,VirtualOffice.partner.organization.READ,ZohoPayments.partnersubscription.all,ZohoPayments.fullaccess.READ,ZohoPayments.leads.READ&state=1a8d7v6r5rw4q2cadsetw&grant_type=authorization_code';
        $curl = curl_init();
        curl_setopt_array($curl, array(
                       CURLOPT_URL => $refurl,
@@ -92,7 +92,7 @@ if (strlen($code) > 0)
    } catch(Exception $e) {
 	echo $e;
    }
-	$url='https://accounts.zoho'.$_POST['zm_dn'].'/oauth/v2/auth?response_type=code&client_id='.$_POST['zm_ci'].'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ&redirect_uri='.$_POST['zm_ru'].'&state=1a8d7v6r5rw4q2cadsetw&prompt=consent&access_type=offline';
+	$url='https://accounts.zoho'.$_POST['zm_dn'].'/oauth/v2/auth?response_type=code&client_id='.$_POST['zm_ci'].'&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.UPDATE,VirtualOffice.partner.organization.READ,ZohoPayments.partnersubscription.all,ZohoPayments.fullaccess.READ,ZohoPayments.leads.READ&redirect_uri='.$_POST['zm_ru'].'&state=1a8d7v6r5rw4q2cadsetw&prompt=consent&access_type=offline';
 	?>
    <head> <meta http-equiv="refresh" content="0; url= <?php echo $url?>"/> </head>  
    <?php

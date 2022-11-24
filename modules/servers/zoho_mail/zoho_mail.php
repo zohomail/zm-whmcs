@@ -1478,7 +1478,7 @@ function get_access_token(array $params)
 {
     $curl = curl_init();
     $cli = Capsule::table('zoho_mail_auth_table')->first();
-    $urlAT = 'https://accounts.zoho' . $cli->region . '/oauth/v2/token?refresh_token=' . $cli->token . '&grant_type=refresh_token&client_id=' . $cli->clientId . '&client_secret=' . $cli->clientSecret . '&redirect_uri=' . $cli->redirectUrl . '&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.READ,ZohoPayments.partnersubscription.all,ZohoPayments.fullaccess.READ,ZohoPayments.leads.READ';
+    $urlAT = 'https://accounts.zoho' . $cli->region . '/oauth/v2/token?refresh_token=' . $cli->token . '&grant_type=refresh_token&client_id=' . $cli->clientId . '&client_secret=' . $cli->clientSecret . '&redirect_uri=' . $cli->redirectUrl . '&scope=VirtualOffice.partner.organization.CREATE,VirtualOffice.partner.organization.UPDATE,VirtualOffice.partner.organization.READ,ZohoPayments.partnersubscription.all,ZohoPayments.fullaccess.READ,ZohoPayments.leads.READ';
     curl_setopt_array($curl, array(
         CURLOPT_URL => $urlAT,
         CURLOPT_RETURNTRANSFER => true,

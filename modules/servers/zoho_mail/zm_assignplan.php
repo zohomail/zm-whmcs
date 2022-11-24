@@ -128,7 +128,7 @@ else{
     else {
         $status = modifySubscriptionPlan($subscription,$accessToken,$email);
     }
-    echo "<script>alert('{$status}');</script>";
+    echo "<script>console.log('{$status}');alert('{$status}');</script>";
 }
 ?><head> <meta http-equiv="refresh" content="0; url= <?php echo  '../../../admin/clientsservices.php?userid='.$userid?>"/>
 </head>
@@ -155,7 +155,8 @@ function extendTrialPlan($accessToken,$userid){
         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
         CURLOPT_CUSTOMREQUEST => 'PUT',
         CURLOPT_HTTPHEADER => array(
-            "authorization: Zoho-oauthtoken ".$accessToken
+            "authorization: Zoho-oauthtoken ".$accessToken,
+            "origin: Whmcs"
         ),
     ));
     
@@ -201,7 +202,8 @@ else if($plan == "Mail Premium Trial"){$plan = "mailPremiumTrial";}
         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
         CURLOPT_CUSTOMREQUEST => 'PUT',
         CURLOPT_HTTPHEADER => array(
-            "authorization: Zoho-oauthtoken ".$accessToken
+            "authorization: Zoho-oauthtoken ".$accessToken,
+            "origin: Whmcs"
         ),
     ));
     
@@ -223,7 +225,7 @@ else if($plan == "Mail Premium Trial"){$plan = "mailPremiumTrial";}
                 'configoption5' => '',
             ]
             );
-        return 'failed-->'.$responseOrg;
+        return 'failed-->'.$responseOrg.$urlOrg;
     }
     else {
         return 'Failed -->Description: '.$responseOrg;
@@ -253,7 +255,8 @@ function addSubscriptionPlan(array $subscription,$accessToken,array $customer,$e
         CURLOPT_POSTFIELDS =>  array('JSONString'=> $bodyJson),
         CURLOPT_HTTPHEADER => array(
             "authorization: Zoho-oauthtoken ".$accessToken,
-            "content-type: multipart/form-data"
+            "content-type: multipart/form-data",
+            "origin: Whmcs"
         ),
     ));
     $responseOrg = curl_exec($curlOrg);
@@ -262,10 +265,10 @@ function addSubscriptionPlan(array $subscription,$accessToken,array $customer,$e
     curl_close($curlOrg);
     if ( $getInfo == '200')
     {
-        if($respOrgJson->result == "success")
+        if ($respOrgJson->result == "success")
             return 'Plan Assigned successfully';
-        else
-            return $responseOrg;
+        else if ($respOrgJson->result == "failure")
+            return 'We are not able to charge your card. Please contact payments@zohocorp.com . We are unable to process your payment at the moment';
                 
     } else if ($getInfo == '400') {
         $updatedUserCount = Capsule::table('tblproducts')
@@ -278,7 +281,7 @@ function addSubscriptionPlan(array $subscription,$accessToken,array $customer,$e
         return 'failed-->'.$responseOrg;
     }
     else {
-        return 'Failed -->Description: '.$respOrgJson->status->description;
+        return 'Failed -->Description: '.$respOrgJson->status->description.' --->More Information:';
     }
 }
 
@@ -305,7 +308,8 @@ function modifySubscriptionPlan(array $subscription,$accessToken,$email)
         CURLOPT_POSTFIELDS =>  array('JSONString'=> $bodyJson),
         CURLOPT_HTTPHEADER => array(
             "authorization: Zoho-oauthtoken ".$accessToken,
-            "content-type: multipart/form-data"
+            "content-type: multipart/form-data",
+            "origin: Whmcs"
         ),
     ));
     $responseOrg = curl_exec($curlOrg);
@@ -316,8 +320,8 @@ function modifySubscriptionPlan(array $subscription,$accessToken,$email)
     {
         if($respOrgJson->result == "success")
             return 'License upgraded';
-            else
-                return $responseOrg;
+        else if($respOrgJson->result == "failure")
+            return 'We are not able to charge your card. Please contact payments@zohocorp.com . We are unable to process your payment at the moment';
                 
     } else if ($getInfo == '400') {
         $updatedUserCount = Capsule::table('tblproducts')
@@ -330,7 +334,7 @@ function modifySubscriptionPlan(array $subscription,$accessToken,$email)
         return 'failed-->'.$responseOrg;
     }
     else {
-        return 'Failed -->Description: '.$respOrgJson->status->description;
+        return 'Failed -->Description: '.$respOrgJson->status->description.' --->More Information:';
     }
 }
 
