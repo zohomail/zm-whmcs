@@ -42,6 +42,12 @@ function zoho_mail_ConfigOptions()
             'Description' => '<html><script type="text/javascript">
                            var tabval = window.location.hash;
                            document.getElementById("zm_tab_value").value = tabval.toString();
+                           function URLChange(str) {
+                                   var url = str.replace(/ /g,"_");
+                                   var protocol = location.protocol;
+            		               var domain = location.hostname;
+                                   document.getElementsByName("zm_ru")[0].value = protocol + "//" + domain + "/" + url+ "modules/servers/zoho_mail/zm_oauthgrant.php";
+                           }
                            </script>
                            <form action=../modules/servers/zoho_mail/zm_oauthgrant.php method=post>
                            <label>Domain</label><br>
@@ -57,8 +63,11 @@ function zoho_mail_ConfigOptions()
                            <label>Client Secret</label><br>
                            <input type="text" size="60" name="zm_cs" required/><br>
                            Generated from <a href="https://accounts.zoho.com/developerconsole" target=_blank>Zoho Developer Console</a><br><br>
+                           <label>Admin folder name</label><br>
+                           <input type="text" size="60" onkeyup="URLChange(this.value);"/><br>
+                           If you have a customized WHMCS admin directory name, please enter it here. You will be redirected here after authentication.<br><br>
                            <label>Redirect URL</label><br>
-                           <input type="text" size="60" name="zm_ru" value=' . $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] . '/' . $dir[1] . '/modules/servers/zoho_mail/zm_oauthgrant.php required readonly/><br>
+                           <input type="text" size="60" name="zm_ru" value=' . $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['SERVER_NAME'] .  '/modules/servers/zoho_mail/zm_oauthgrant.php required readonly/><br>
                            Redirect URL used to generate Client ID and Client Secret.<br><br>
                            <input type="hidden" id="zm_tab_value" name="zm_tab_value" value=""/>
                            <input type="hidden" name="zm_pi" value=' . $_REQUEST['id'] . '>
