@@ -11,8 +11,14 @@ if (strlen($code) > 0)
 	$location = '';
     if($_GET['location'] == 'us') {
 	     $location = '.com';
-       } else {
+       } else if($_GET['location'] == 'eu') {
 	     $location ='.eu';
+      } else if($_GET['location'] == 'in') {
+	     $location ='.in';
+      } else if($_GET['location'] == 'com.au') {
+	     $location ='.com.au';
+      } else if($_GET['location'] == 'com.cn') {
+	     $location ='.com.cn';
       }
     try {
        $cli = Capsule::table('zoho_mail_auth_table')->where('region',$location)->first();
