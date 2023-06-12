@@ -1714,8 +1714,8 @@ function get_customer_list($accessToken)
                     $dt = strtotime($newRow["RegistrationDate"]);
                     $newRow["RenewalDate"] = date("Y-m-d", strtotime("+1 month", $dt));
                 }
-                $newRow["ManageUrl"] = 'https://store.zoho.com/store/reseller.do?profileId=' . $row['profile_id'];
-                $newRow["LicenseUrl"] ='https://mailadmin.zoho.com/cpanel/home.do?zaaid='.$newRow["CustomId"].'#dashboard';
+                $newRow["ManageUrl"] = 'https://store.zoho'.$cli->region.'/store/reseller.do?profileId=' . $row['profile_id'];
+                $newRow["LicenseUrl"] ='https://mailadmin.zoho'.$cli->region.'/cpanel/home.do?zaaid='.$newRow["CustomId"].'#dashboard';
                 
                 $statement->execute($newRow);
             }
